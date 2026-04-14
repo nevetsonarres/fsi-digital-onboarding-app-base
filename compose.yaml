@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: onboarding
+      POSTGRES_PASSWORD: onboarding
+      POSTGRES_DB: onboarding
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onboarding -d onboarding"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://onboarding:onboarding@postgres:5432/onboarding
+      JWT_ACCESS_SECRET: dev-access-secret-change-in-production
+      JWT_REFRESH_SECRET: dev-refresh-secret-change-in-production
+      JWT_ACCESS_EXPIRY: 15m
+      JWT_REFRESH_EXPIRY: 7d
+      S3_BUCKET_NAME: ph-bank-onboarding-docs
+      S3_REGION: ap-southeast-1
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      FRONTEND_ORIGIN: http://localhost:5173
+      PORT: "3000"
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "node src/db/migrate.js && node src/app.js"
+
+volumes:
+  pgdata:
