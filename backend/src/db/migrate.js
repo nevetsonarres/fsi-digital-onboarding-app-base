@@ -5,7 +5,6 @@ const migrate = async () => {
   try {
     await client.query('BEGIN');
 
-    // Users table
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -18,7 +17,6 @@ const migrate = async () => {
       )
     `);
 
-    // Applications table
     await client.query(`
       CREATE TABLE IF NOT EXISTS applications (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -30,7 +28,6 @@ const migrate = async () => {
       )
     `);
 
-    // Application steps table
     await client.query(`
       CREATE TABLE IF NOT EXISTS application_steps (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -44,7 +41,6 @@ const migrate = async () => {
       )
     `);
 
-    // Documents table
     await client.query(`
       CREATE TABLE IF NOT EXISTS documents (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -59,7 +55,6 @@ const migrate = async () => {
       )
     `);
 
-    // Verification actions table
     await client.query(`
       CREATE TABLE IF NOT EXISTS verification_actions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -83,7 +78,6 @@ const migrate = async () => {
   }
 };
 
-// Run migration if executed directly
 if (require.main === module) {
   migrate()
     .then(() => process.exit(0))

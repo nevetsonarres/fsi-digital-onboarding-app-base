@@ -6,30 +6,14 @@ const { ConflictError, UnauthorizedError } = require('../errors');
 
 const BCRYPT_COST_FACTOR = 10;
 
-/**
- * Hash a plaintext password using bcrypt.
- * @param {string} password
- * @returns {Promise<string>} bcrypt hash
- */
 async function hashPassword(password) {
   return bcrypt.hash(password, BCRYPT_COST_FACTOR);
 }
 
-/**
- * Verify a plaintext password against a bcrypt hash.
- * @param {string} password
- * @param {string} hash
- * @returns {Promise<boolean>}
- */
 async function verifyPassword(password, hash) {
   return bcrypt.compare(password, hash);
 }
 
-/**
- * Generate JWT access and refresh tokens for a user.
- * @param {{ id: string, role: string }} user
- * @returns {{ accessToken: string, refreshToken: string }}
- */
 function generateTokens(user) {
   const accessToken = jwt.sign(
     { sub: user.id, role: user.role },
@@ -46,11 +30,6 @@ function generateTokens(user) {
   return { accessToken, refreshToken };
 }
 
-/**
- * Register a new customer account.
- * @param {{ email: string, password: string, fullName: string }} data
- * @returns {Promise<{ accessToken: string }>}
- */
 async function register({ email, password, fullName }) {
   const existing = await db.query('SELECT id FROM users WHERE email = $1', [email]);
   if (existing.rows.length > 0) {
@@ -72,11 +51,6 @@ async function register({ email, password, fullName }) {
   return { accessToken };
 }
 
-/**
- * Authenticate a user and return tokens.
- * @param {{ email: string, password: string }} data
- * @returns {Promise<{ accessToken: string, refreshToken: string }>}
- */
 async function login({ email, password }) {
   const result = await db.query(
     'SELECT id, password_hash, role FROM users WHERE email = $1',
@@ -97,11 +71,6 @@ async function login({ email, password }) {
   return generateTokens(user);
 }
 
-/**
- * Issue a new access token from a valid refresh token.
- * @param {string} refreshToken
- * @returns {Promise<{ accessToken: string }>}
- */
 async function refreshToken(refreshToken) {
   let payload;
   try {

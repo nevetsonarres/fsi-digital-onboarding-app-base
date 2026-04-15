@@ -6,8 +6,8 @@ const config = require('../config');
 const { ValidationError } = require('../errors');
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const PRESIGNED_URL_EXPIRY = 15 * 60; // 15 minutes in seconds
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const PRESIGNED_URL_EXPIRY = 15 * 60;
 
 const MIME_TO_EXT = {
   'image/jpeg': 'jpg',
@@ -50,9 +50,7 @@ function generateFileKey(applicationId, documentType, mimetype) {
 
 async function uploadDocument(fileBuffer, metadata) {
   const { applicationId, documentType, mimetype, originalFilename } = metadata;
-
   const key = generateFileKey(applicationId, documentType, mimetype);
-
   const command = new PutObjectCommand({
     Bucket: config.s3BucketName,
     Key: key,
@@ -64,9 +62,7 @@ async function uploadDocument(fileBuffer, metadata) {
       'document-type': documentType,
     },
   });
-
   await s3Client.send(command);
-
   return { key };
 }
 
@@ -75,7 +71,6 @@ async function getPresignedUrl(key) {
     Bucket: config.s3BucketName,
     Key: key,
   });
-
   return getSignedUrl(s3Client, command, { expiresIn: PRESIGNED_URL_EXPIRY });
 }
 
