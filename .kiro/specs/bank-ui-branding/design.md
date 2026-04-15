@@ -2,10 +2,10 @@
 
 ## Overview
 
-This feature revises the AnyBank Philippine onboarding portal frontend so every screen clearly communicates "bank account opening application." Changes are strictly cosmetic and additive at the UI layer:
+This feature revises the AnyBank Philippine onboarding portal frontend so every screen clearly communicates “bank account opening application.” Changes are strictly cosmetic and additive at the UI layer:
 
 - Update static text (headings, labels, descriptions, button text, footer copy)
-- Add 4 new UI-only form fields (existing customer flag, mother's maiden name, account type, purpose of account)
+- Add 4 new UI-only form fields (existing customer flag, mother’s maiden name, account type, purpose of account)
 - All new field values live in component-local `useState` only — no API payload changes
 - No backend, routing, validation, or API contract changes
 
