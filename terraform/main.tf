@@ -105,6 +105,13 @@ resource "aws_iam_user_policy" "backend_s3" {
           aws_s3_bucket.documents.arn,
           "${aws_s3_bucket.documents.arn}/*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "textract:AnalyzeID"
+        ]
+        Resource = ["*"]
       }
     ]
   })

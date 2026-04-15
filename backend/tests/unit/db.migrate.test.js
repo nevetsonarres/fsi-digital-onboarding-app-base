@@ -24,19 +24,15 @@ describe('db/migrate', () => {
 
   it('runs all table creation queries inside a transaction', async () => {
     await migrate();
-
     const calls = mockClient.query.mock.calls.map(([sql]) => sql.trim());
-
-    // BEGIN + 5 CREATE TABLE + COMMIT = 7 calls
-    expect(calls).toHaveLength(7);
+    expect(calls).toHaveLength(8);
     expect(calls[0]).toBe('BEGIN');
-    expect(calls[6]).toBe('COMMIT');
+    expect(calls[7]).toBe('COMMIT');
   });
 
   it('creates users table with correct constraints', async () => {
     await migrate();
     const sql = mockClient.query.mock.calls[1][0];
-
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS users');
     expect(sql).toContain('id UUID PRIMARY KEY DEFAULT gen_random_uuid()');
     expect(sql).toContain('email VARCHAR(255) UNIQUE NOT NULL');
@@ -46,7 +42,6 @@ describe('db/migrate', () => {
   it('creates applications table with UNIQUE user_id', async () => {
     await migrate();
     const sql = mockClient.query.mock.calls[2][0];
-
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS applications');
     expect(sql).toContain('user_id UUID UNIQUE NOT NULL REFERENCES users(id)');
     expect(sql).toContain("DEFAULT 'draft'");
@@ -55,7 +50,6 @@ describe('db/migrate', () => {
   it('creates application_steps with composite unique constraint', async () => {
     await migrate();
     const sql = mockClient.query.mock.calls[3][0];
-
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS application_steps');
     expect(sql).toContain('CHECK (step_number BETWEEN 1 AND 4)');
     expect(sql).toContain('UNIQUE (application_id, step_number)');
@@ -64,7 +58,6 @@ describe('db/migrate', () => {
   it('creates documents with composite unique constraint', async () => {
     await migrate();
     const sql = mockClient.query.mock.calls[4][0];
-
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS documents');
     expect(sql).toContain("CHECK (document_type IN ('government_id', 'proof_of_address'))");
     expect(sql).toContain('UNIQUE (application_id, document_type)');
@@ -73,17 +66,31 @@ describe('db/migrate', () => {
   it('creates verification_actions with foreign keys', async () => {
     await migrate();
     const sql = mockClient.query.mock.calls[5][0];
-
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS verification_actions');
     expect(sql).toContain('application_id UUID NOT NULL REFERENCES applications(id)');
     expect(sql).toContain('officer_id UUID NOT NULL REFERENCES users(id)');
   });
 
+  it('creates ekyc_verifications table with correct constraints', async () => {
+    await migrate();
+    const sql = mockClient.query.mock.calls[6][0];
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS ekyc_verifications');
+    expect(sql).toContain('application_id UUID NOT NULL REFERENCES applications(id)');
+    expect(sql).toContain('document_id UUID NOT NULL REFERENCES documents(id)');
+    expect(sql).toContain('id_type VARCHAR(50) NULL');
+    expect(sql).toContain("extraction_status VARCHAR(20) NOT NULL DEFAULT 'pending'");
+    expect(sql).toContain("CHECK (extraction_status IN ('pending', 'completed', 'failed', 'needs_retry'))");
+    expect(sql).toContain("extracted_data JSONB NOT NULL DEFAULT '{}'");
+    expect(sql).toContain("confidence_scores JSONB NOT NULL DEFAULT '{}'");
+    expect(sql).toContain("mismatches JSONB NOT NULL DEFAULT '{}'");
+    expect(sql).toContain('raw_textract_response JSONB NULL');
+    expect(sql).toContain('error_reason TEXT NULL');
+  });
+
   it('rolls back on error and rethrows', async () => {
     mockClient.query
-      .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({})
       .mockRejectedValueOnce(new Error('SQL error'));
-
     await expect(migrate()).rejects.toThrow('SQL error');
     expect(mockClient.query).toHaveBeenCalledWith('ROLLBACK');
     expect(mockClient.release).toHaveBeenCalled();
