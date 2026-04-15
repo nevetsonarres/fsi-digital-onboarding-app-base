@@ -43,6 +43,12 @@ class InvalidTransitionError extends AppError {
   }
 }
 
+class TextractError extends AppError {
+  constructor(message, details) {
+    super(502, message, 'TEXTRACT_ERROR', details);
+  }
+}
+
 module.exports = {
   AppError,
   ValidationError,
@@ -51,4 +57,5 @@ module.exports = {
   NotFoundError,
   ConflictError,
   InvalidTransitionError,
+  TextractError,
 };

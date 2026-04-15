@@ -67,6 +67,24 @@ const migrate = async () => {
       )
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ekyc_verifications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        application_id UUID NOT NULL REFERENCES applications(id),
+        document_id UUID NOT NULL REFERENCES documents(id),
+        id_type VARCHAR(50) NULL,
+        extraction_status VARCHAR(20) NOT NULL DEFAULT 'pending'
+          CHECK (extraction_status IN ('pending', 'completed', 'failed', 'needs_retry')),
+        extracted_data JSONB NOT NULL DEFAULT '{}',
+        confidence_scores JSONB NOT NULL DEFAULT '{}',
+        mismatches JSONB NOT NULL DEFAULT '{}',
+        raw_textract_response JSONB NULL,
+        error_reason TEXT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
     await client.query('COMMIT');
     console.log('Migration completed successfully');
   } catch (err) {
