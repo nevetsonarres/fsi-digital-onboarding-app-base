@@ -22,6 +22,9 @@ terraform/*.tfvars
 # IDE / Editor
 .vscode/
 
+# Kiro local settings (MCP config, etc.)
+.kiro/settings/
+
 # OS files
 .DS_Store
 Thumbs.db
