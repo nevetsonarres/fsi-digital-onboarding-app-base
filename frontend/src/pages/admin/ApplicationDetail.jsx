@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import StatusUpdatePanel from '../../components/StatusUpdatePanel';
-import ContentLayout from '@cloudscape-design/components/content-layout';
 import Container from '@cloudscape-design/components/container';
 import Header from '@cloudscape-design/components/header';
 import SpaceBetween from '@cloudscape-design/components/space-between';
@@ -13,6 +12,8 @@ import Box from '@cloudscape-design/components/box';
 import Spinner from '@cloudscape-design/components/spinner';
 import Alert from '@cloudscape-design/components/alert';
 import Link from '@cloudscape-design/components/link';
+import Table from '@cloudscape-design/components/table';
+import Badge from '@cloudscape-design/components/badge';
 
 const STATUS_MAP = {
   pending_verification: { type: 'pending', label: 'Pending Verification' },
@@ -30,6 +31,30 @@ const FIELD_LABELS = {
   employmentStatus: 'Employment Status', employerName: 'Employer', occupation: 'Occupation',
   monthlyIncomeRange: 'Monthly Income Range', sourceOfFunds: 'Source of Funds',
 };
+const EKYC_FIELD_LABELS = {
+  fullName: 'Full Name', dateOfBirth: 'Date of Birth', idNumber: 'ID Number',
+  expiryDate: 'Expiry Date', address: 'Address',
+};
+const EXTRACTION_STATUS_MAP = {
+  completed: { type: 'success', label: 'Completed' },
+  failed: { type: 'error', label: 'Failed' },
+  needs_retry: { type: 'warning', label: 'Needs Retry' },
+  pending: { type: 'pending', label: 'Pending' },
+};
+
+function getConfidenceIndicator(score) {
+  if (score >= 80) return <StatusIndicator type="success">{score.toFixed(1)}%</StatusIndicator>;
+  if (score >= 60) return <StatusIndicator type="warning">{score.toFixed(1)}%</StatusIndicator>;
+  return <StatusIndicator type="error">{score.toFixed(1)}%</StatusIndicator>;
+}
+
+function getMatchBadge(mismatchInfo) {
+  if (!mismatchInfo) return <Badge color="grey">N/A</Badge>;
+  if (mismatchInfo.status === 'match') return <Badge color="green">Match</Badge>;
+  if (mismatchInfo.status === 'mismatch') return <Badge color="red">Mismatch</Badge>;
+  if (mismatchInfo.status === 'low_confidence') return <Badge color="grey">Low Confidence</Badge>;
+  return <Badge color="grey">{mismatchInfo.status}</Badge>;
+}
 
 export default function ApplicationDetail() {
   const { id } = useParams();
@@ -60,9 +85,9 @@ export default function ApplicationDetail() {
   const s = STATUS_MAP[app.status] || { type: 'info', label: app.status };
 
   const sections = [
-    <Button key="back" variant="link" onClick={() => navigate('/admin')}>← Back to list</Button>,
+    <Button key="back" variant="link" onClick={() => navigate('/admin')}>\u2190 Back to list</Button>,
     <Container key="header" header={<Header variant="h2" description={app.submitted_at ? `Submitted ${new Date(app.submitted_at).toLocaleString()}` : ''}>
-      Application Detail — <StatusIndicator type={s.type}>{s.label}</StatusIndicator>
+      Application Detail \u2014 <StatusIndicator type={s.type}>{s.label}</StatusIndicator>
     </Header>} />,
     ...(app.steps || []).map((step) => (
       <Container key={`step-${step.step_number}`} header={<Header variant="h3">{STEP_TITLES[step.step_number]}</Header>}>
@@ -102,9 +127,53 @@ export default function ApplicationDetail() {
     );
   }
 
-  sections.push(
-    <StatusUpdatePanel key="status-panel" applicationId={id} currentStatus={app.status} onUpdated={setApp} />
-  );
+  sections.push(buildEkycSection(app.ekycVerification));
+  sections.push(<StatusUpdatePanel key="status-panel" applicationId={id} currentStatus={app.status} onUpdated={setApp} />);
 
   return <SpaceBetween size="l">{sections}</SpaceBetween>;
+}
+
+function buildEkycSection(ekycVerification) {
+  if (!ekycVerification) {
+    return (
+      <Container key="ekyc" header={<Header variant="h3">eKYC Verification</Header>}>
+        <Box color="text-body-secondary">eKYC verification not yet performed</Box>
+      </Container>
+    );
+  }
+  const statusInfo = EXTRACTION_STATUS_MAP[ekycVerification.extraction_status] || { type: 'info', label: ekycVerification.extraction_status };
+  const extractedData = ekycVerification.extracted_data || {};
+  const confidenceScores = ekycVerification.confidence_scores || {};
+  const mismatches = ekycVerification.mismatches || {};
+  const tableItems = Object.keys(extractedData).map((field) => ({
+    field, label: EKYC_FIELD_LABELS[field] || field,
+    extractedValue: extractedData[field] || '\u2014',
+    confidence: confidenceScores[field], mismatch: mismatches[field],
+  }));
+  return (
+    <Container key="ekyc" header={<Header variant="h3">eKYC Verification</Header>}>
+      <SpaceBetween size="l">
+        <ColumnLayout columns={2} variant="text-grid">
+          <div>
+            <Box variant="awsui-key-label">Extraction Status</Box>
+            <StatusIndicator type={statusInfo.type}>{statusInfo.label}</StatusIndicator>
+          </div>
+          <div>
+            <Box variant="awsui-key-label">Verified At</Box>
+            <div>{new Date(ekycVerification.created_at).toLocaleString()}</div>
+          </div>
+        </ColumnLayout>
+        {ekycVerification.error_reason && <Alert type="error">Error: {ekycVerification.error_reason}</Alert>}
+        {tableItems.length > 0 && (
+          <Table variant="embedded" header={<Header variant="h3">Extracted Fields</Header>} items={tableItems}
+            columnDefinitions={[
+              { id: 'field', header: 'Field', cell: (item) => item.label },
+              { id: 'extracted', header: 'Extracted Value', cell: (item) => item.extractedValue },
+              { id: 'confidence', header: 'Confidence', cell: (item) => item.confidence != null ? getConfidenceIndicator(item.confidence) : '\u2014' },
+              { id: 'match', header: 'Match Status', cell: (item) => getMatchBadge(item.mismatch) },
+            ]} />
+        )}
+      </SpaceBetween>
+    </Container>
+  );
 }
