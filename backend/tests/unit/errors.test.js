@@ -1,11 +1,6 @@
 const {
-  AppError,
-  ValidationError,
-  UnauthorizedError,
-  ForbiddenError,
-  NotFoundError,
-  ConflictError,
-  InvalidTransitionError,
+  AppError, ValidationError, UnauthorizedError, ForbiddenError,
+  NotFoundError, ConflictError, InvalidTransitionError, TextractError,
 } = require('../../src/errors');
 
 describe('Custom Error Classes', () => {
@@ -65,5 +60,23 @@ describe('Custom Error Classes', () => {
     expect(err.statusCode).toBe(400);
     expect(err.code).toBe('INVALID_TRANSITION');
     expect(err.message).toBe('Cannot transition from approved to rejected');
+  });
+
+  test('TextractError returns 502 with TEXTRACT_ERROR code', () => {
+    const details = { rawError: 'Textract service unavailable' };
+    const err = new TextractError('Failed to analyze document', details);
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.statusCode).toBe(502);
+    expect(err.code).toBe('TEXTRACT_ERROR');
+    expect(err.message).toBe('Failed to analyze document');
+    expect(err.details).toEqual(details);
+  });
+
+  test('TextractError works without details', () => {
+    const err = new TextractError('Textract timeout');
+    expect(err.statusCode).toBe(502);
+    expect(err.code).toBe('TEXTRACT_ERROR');
+    expect(err.message).toBe('Textract timeout');
+    expect(err.details).toBeUndefined();
   });
 });
