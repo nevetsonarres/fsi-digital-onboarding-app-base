@@ -22,6 +22,7 @@ const s3Client = new S3Client({
         credentials: {
           accessKeyId: config.awsAccessKeyId,
           secretAccessKey: config.awsSecretAccessKey,
+          ...(config.awsSessionToken ? { sessionToken: config.awsSessionToken } : {}),
         },
       }
     : {}),

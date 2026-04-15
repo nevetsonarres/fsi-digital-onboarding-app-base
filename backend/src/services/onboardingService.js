@@ -193,7 +193,7 @@ async function listApplications(filters) {
     params.push(status);
   }
 
-  dataQuery += ` ORDER BY a.created_at DESC LIMIT ${params.length + 1} OFFSET ${params.length + 2}`;
+  dataQuery += ` ORDER BY a.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
 
   const countResult = await db.query(countQuery, params);
   const total = parseInt(countResult.rows[0].count, 10);

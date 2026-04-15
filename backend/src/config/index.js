@@ -16,6 +16,7 @@ const config = {
   s3Region: process.env.S3_REGION || 'ap-southeast-1',
   awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID,
   awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  awsSessionToken: process.env.AWS_SESSION_TOKEN,
 
   // CORS
   frontendOrigin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173',
