@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const { authenticate, authorize } = require('../middleware/auth');
 const validate = require('../middleware/validate');
-const { applicationFiltersSchema, statusUpdateSchema } = require('../validators/schemas');
+const { applicationFiltersSchema, statusUpdateSchema, documentUrlParamsSchema } = require('../validators/schemas');
 const onboardingService = require('../services/onboardingService');
 const { ValidationError } = require('../errors');
 
@@ -62,6 +62,26 @@ router.get('/applications/:id', async (req, res, next) => {
   try {
     const application = await onboardingService.getApplicationById(req.params.id);
     res.status(200).json(application);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /applications/:id/documents/:docId/url — Get presigned URL for a document
+ */
+router.get('/applications/:id/documents/:docId/url', async (req, res, next) => {
+  try {
+    const result = documentUrlParamsSchema.safeParse(req.params);
+    if (!result.success) {
+      const details = result.error.issues.map((issue) => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      }));
+      throw new ValidationError('Invalid request data', details);
+    }
+    const url = await onboardingService.getDocumentUrl(result.data.id, result.data.docId);
+    res.status(200).json({ url });
   } catch (err) {
     next(err);
   }
