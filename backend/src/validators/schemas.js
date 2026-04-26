@@ -51,6 +51,11 @@ const statusUpdateSchema = z.object({
   { message: 'Reason is required when rejecting an application' }
 );
 
+const documentUrlParamsSchema = z.object({
+  id: z.string().uuid(),
+  docId: z.string().uuid(),
+});
+
 const applicationFiltersSchema = z.object({
   status: z.enum([
     'pending_verification', 'approved', 'rejected',
@@ -68,4 +73,5 @@ module.exports = {
   employmentSchema,
   statusUpdateSchema,
   applicationFiltersSchema,
+  documentUrlParamsSchema,
 };

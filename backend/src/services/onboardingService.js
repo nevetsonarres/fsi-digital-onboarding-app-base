@@ -1,5 +1,6 @@
 const db = require('../db/pool');
 const { NotFoundError, ConflictError, ValidationError, InvalidTransitionError } = require('../errors');
+const fileService = require('./fileService');
 
 async function getOrCreateApplication(userId) {
   const existing = await db.query(
@@ -87,7 +88,7 @@ async function listApplications(filters) {
     dataQuery += ' AND a.status = $1';
     params.push(status);
   }
-  dataQuery += ` ORDER BY a.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+  dataQuery += ` ORDER BY a.created_at DESC LIMIT ${params.length + 1} OFFSET ${params.length + 2}`;
   const countResult = await db.query(countQuery, params);
   const total = parseInt(countResult.rows[0].count, 10);
   const dataResult = await db.query(dataQuery, [...params, limit, offset]);
@@ -178,8 +179,18 @@ async function getStatusCounts() {
   return counts;
 }
 
+async function getDocumentUrl(applicationId, documentId) {
+  const result = await db.query(
+    'SELECT file_key FROM documents WHERE application_id = $1 AND id = $2',
+    [applicationId, documentId]
+  );
+  if (result.rows.length === 0) throw new NotFoundError('Document');
+  return fileService.getPresignedUrl(result.rows[0].file_key);
+}
+
 module.exports = {
   getOrCreateApplication, saveStepData, getStepData, submitApplication, getApplication,
   listApplications, getApplicationById, updateApplicationStatus, getStatusCounts,
   createEkycVerification, getLatestEkycVerification, getEkycVerificationByDocument,
+  getDocumentUrl,
 };

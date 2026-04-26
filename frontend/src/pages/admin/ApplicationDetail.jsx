@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import StatusUpdatePanel from '../../components/StatusUpdatePanel';
+import DocumentLightbox from '../../components/DocumentLightbox';
 import Container from '@cloudscape-design/components/container';
 import Header from '@cloudscape-design/components/header';
 import SpaceBetween from '@cloudscape-design/components/space-between';
@@ -14,6 +15,11 @@ import Alert from '@cloudscape-design/components/alert';
 import Link from '@cloudscape-design/components/link';
 import Table from '@cloudscape-design/components/table';
 import Badge from '@cloudscape-design/components/badge';
+
+const DOCUMENT_TYPES = [
+  { type: 'government_id', label: 'Government ID' },
+  { type: 'proof_of_address', label: 'Proof of Address' },
+];
 
 const STATUS_MAP = {
   pending_verification: { type: 'pending', label: 'Pending Verification' },
@@ -63,6 +69,7 @@ export default function ApplicationDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [docUrls, setDocUrls] = useState({});
+  const [lightbox, setLightbox] = useState({ visible: false, src: '', alt: '' });
 
   useEffect(() => {
     api.get(`/admin/applications/${id}`).then(setApp).catch((e) => setError(e.message)).finally(() => setLoading(false));
@@ -85,8 +92,8 @@ export default function ApplicationDetail() {
   const s = STATUS_MAP[app.status] || { type: 'info', label: app.status };
 
   const sections = [
-    <Button key="back" variant="link" onClick={() => navigate('/admin')}>\u2190 Back to list</Button>,
-    <Container key="header" header={<Header variant="h2" description={app.submitted_at ? `Submitted ${new Date(app.submitted_at).toLocaleString()}` : ''}>
+    <Container key="header" header={<Header variant="h2" description={app.submitted_at ? `Submitted ${new Date(app.submitted_at).toLocaleString()}` : ''}
+      actions={<Button variant="link" onClick={() => navigate('/admin')}>\u2190 Back to list</Button>}>
       Application Detail \u2014 <StatusIndicator type={s.type}>{s.label}</StatusIndicator>
     </Header>} />,
     ...(app.steps || []).map((step) => (
@@ -103,34 +110,54 @@ export default function ApplicationDetail() {
     )),
   ];
 
-  if (app.documents?.length > 0) {
-    sections.push(
-      <Container key="docs" header={<Header variant="h3">Documents</Header>}>
-        <ColumnLayout columns={2}>
-          {app.documents.map((doc) => {
-            const label = doc.document_type === 'government_id' ? 'Government ID' : 'Proof of Address';
-            const url = docUrls[doc.id];
-            const isImage = doc.mime_type?.startsWith('image/');
-            return (
-              <Container key={doc.id}>
-                <SpaceBetween size="s">
-                  <Box key="label" variant="awsui-key-label">{label}</Box>
-                  {url && isImage && <img key="img" src={url} alt={label} style={{ maxWidth: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 4 }} />}
-                  {url && !isImage && <Link key="link" href={url} external>View PDF</Link>}
-                  <Box key="meta" color="text-body-secondary" fontSize="body-s">{doc.original_filename} ({(doc.file_size / 1024).toFixed(0)} KB)</Box>
-                </SpaceBetween>
-              </Container>
-            );
-          })}
-        </ColumnLayout>
-      </Container>
-    );
-  }
+  sections.push(
+    <Container key="docs" header={<Header variant="h3">Documents</Header>}>
+      <ColumnLayout columns={2}>
+        {DOCUMENT_TYPES.map(({ type, label }) => {
+          const doc = (app.documents || []).find((d) => d.document_type === type);
+          const url = doc ? docUrls[doc.id] : null;
+          const isImage = doc?.mime_type?.startsWith('image/');
+          return (
+            <Container key={type}>
+              <SpaceBetween size="s">
+                <Box variant="awsui-key-label">{label}</Box>
+                {doc && url && isImage && (
+                  <img
+                    src={url}
+                    alt={label}
+                    style={{ maxWidth: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 4, cursor: 'pointer' }}
+                    onClick={() => setLightbox({ visible: true, src: url, alt: label })}
+                  />
+                )}
+                {doc && url && !isImage && <Link href={url} external>View PDF</Link>}
+                {doc && (
+                  <Box color="text-body-secondary" fontSize="body-s">
+                    {doc.original_filename} ({(doc.file_size / 1024).toFixed(0)} KB)
+                  </Box>
+                )}
+                {!doc && <Box color="text-body-secondary">Not uploaded</Box>}
+              </SpaceBetween>
+            </Container>
+          );
+        })}
+      </ColumnLayout>
+    </Container>
+  );
 
   sections.push(buildEkycSection(app.ekycVerification));
   sections.push(<StatusUpdatePanel key="status-panel" applicationId={id} currentStatus={app.status} onUpdated={setApp} />);
 
-  return <SpaceBetween size="l">{sections}</SpaceBetween>;
+  return (
+    <SpaceBetween size="l">
+      {sections}
+      <DocumentLightbox
+        visible={lightbox.visible}
+        imageSrc={lightbox.src}
+        altText={lightbox.alt}
+        onClose={() => setLightbox({ visible: false, src: '', alt: '' })}
+      />
+    </SpaceBetween>
+  );
 }
 
 function buildEkycSection(ekycVerification) {
