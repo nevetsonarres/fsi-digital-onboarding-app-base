@@ -1,68 +1,49 @@
 # Project Structure
 
-Monorepo with `backend/`, `frontend/`, and `terraform/` at the root.
-
-## Backend (`backend/`)
-
 ```
-src/
-  app.js                  # Express app setup, middleware chain, route mounting
-  config/index.js         # Centralized env-based configuration
-  db/
-    pool.js               # PostgreSQL connection pool and query helper
-    migrate.js            # Schema migration script
-    seed.js               # Test data seeder
-  errors/index.js         # AppError hierarchy (ValidationError, UnauthorizedError, etc.)
-  middleware/
-    auth.js               # authenticate() and authorize(role) middleware
-    correlationId.js      # Attaches correlation ID to requests
-    errorHandler.js       # Global error handler (AppError → structured JSON)
-    requestLogger.js      # Request logging via Winston
-    validate.js           # Zod schema validation middleware factory
-  routes/
-    auth.js               # /api/v1/auth — register, login, refresh
-    onboarding.js         # /api/v1/onboarding — customer application steps
-    admin.js              # /api/v1/admin — admin review and status updates
-  services/
-    authService.js        # Registration, login, token generation
-    onboardingService.js  # Application CRUD, step management, status transitions
-    fileService.js        # S3 document upload/download with presigned URLs
-  utils/logger.js         # Winston logger instance
-  validators/schemas.js   # All Zod schemas (register, login, steps, admin actions)
-tests/
-  unit/                   # Jest unit tests
-  integration/            # Integration tests
-  property/               # fast-check property-based tests
+digital-onboarding-app/
+├── backend/                    # Express API server
+│   ├── src/
+│   │   ├── app.js             # Express app setup and middleware chain
+│   │   ├── config/            # Environment-based configuration
+│   │   ├── db/                # Database pool, migrations, seed scripts
+│   │   ├── errors/            # Custom error classes (NotFoundError, etc.)
+│   │   ├── middleware/        # Auth, validation, logging, error handler
+│   │   ├── routes/            # Route handlers (auth, onboarding, admin)
+│   │   ├── services/          # Business logic layer
+│   │   ├── utils/             # Logger and shared utilities
+│   │   └── validators/        # Zod schemas for request validation
+│   └── tests/
+│       ├── unit/              # Unit tests
+│       ├── integration/       # Integration tests
+│       └── property/          # Property-based tests (fast-check)
+├── frontend/                   # React SPA
+│   ├── src/
+│   │   ├── App.jsx            # Root component with routing
+│   │   ├── main.jsx           # Entry point
+│   │   ├── components/        # Shared UI components
+│   │   ├── context/           # React context providers (AuthContext)
+│   │   ├── pages/             # Page-level components
+│   │   │   ├── admin/         # Admin dashboard views
+│   │   │   └── onboarding/    # Customer onboarding wizard steps
+│   │   └── services/          # API client utilities
+│   └── public/                # Static assets (logo)
+├── compose.yaml               # Docker Compose (PostgreSQL + backend)
+├── architecture-diagram.md    # AWS architecture overview
+└── .env.example               # Environment variable template
 ```
 
-## Frontend (`frontend/`)
+## Architecture Layers (Backend)
 
-```
-src/
-  App.jsx                 # Root component with routing
-  main.jsx                # Entry point, Cloudscape global styles
-  context/
-    AuthContext.jsx        # Auth state, login/register/logout, token management
-  components/
-    AppLayout.jsx         # Cloudscape AppLayout shell
-    ProtectedRoute.jsx    # Role-based route guard
-    ProgressIndicator.jsx # Onboarding step progress
-    StatusCountCards.jsx   # Admin dashboard status cards
-    StatusUpdatePanel.jsx  # Admin status update form
-  pages/
-    LoginPage.jsx
-    RegisterPage.jsx
-    onboarding/           # Customer onboarding wizard steps
-    admin/                # Admin dashboard, application list, detail view
-  services/
-    api.js                # Fetch wrapper with JWT auth and token refresh
-```
+1. **Routes** — HTTP interface, parameter parsing, response formatting
+2. **Middleware** — Cross-cutting concerns (auth, validation, logging)
+3. **Services** — Business logic and orchestration
+4. **DB** — Raw SQL queries via `pg` pool (no ORM)
 
-## Conventions
+## Key Patterns
 
-- **API routes** are versioned under `/api/v1/`.
-- **Route → Service pattern**: Routes handle HTTP concerns, services contain business logic and DB queries.
-- **Error handling**: Throw typed errors from `errors/index.js`; the global error handler serializes them.
-- **Validation**: Define Zod schemas in `validators/schemas.js`, apply via `validate(schema)` middleware in routes.
-- **Frontend state**: React Context for auth; component-local state for forms.
-- **Frontend UI**: Use Cloudscape components — do not introduce other UI libraries.
+- Routes delegate to services; services own business rules and DB access.
+- One service file per domain area (auth, onboarding, file handling).
+- Middleware is composed per-route: `authenticate` → `authorize(role)` → `validate(schema)` → handler.
+- Frontend pages map to routes; shared components live in `components/`.
+- Context providers (e.g., AuthContext) manage global state.
