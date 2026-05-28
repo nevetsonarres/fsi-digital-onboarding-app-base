@@ -1,27 +1,23 @@
 # Product Overview
 
-AnyBank Digital Onboarding Portal — a full-stack web application for Philippine bank customer onboarding.
+PH Bank Onboarding Portal — a digital customer onboarding application for a Philippine bank.
 
 ## What It Does
 
-- Customers register, then complete a multi-step onboarding wizard: personal info, address, employment, and document uploads (government ID, proof of address).
-- Customers submit their application for verification.
-- Admin users review submitted applications, approve/reject/flag them, and track status counts on a dashboard.
+- Customers register, complete a multi-step onboarding wizard (personal info, address, employment, document upload), and submit their application for review.
+- Bank officers (admins) review submitted applications, verify documents, and approve/reject/flag applications.
 
 ## User Roles
 
-- **Customer**: Registers, fills out onboarding steps, uploads documents, submits application.
-- **Admin**: Reviews applications, updates statuses (approved, rejected, flagged_branch_visit, flagged_home_verification).
+- **Customer**: Self-service account opening via a guided wizard.
+- **Admin (Bank Officer)**: Reviews and acts on submitted applications from a dashboard.
 
-## Application Lifecycle
+## Domain Context
 
-`draft` → `pending_verification` → `approved` | `rejected` | `flagged_branch_visit` | `flagged_home_verification`
+- Philippine banking context: TIN format (###-###-###-###), PH mobile numbers (+63/0 prefix), barangay-level addresses, peso income ranges.
+- Document types: government ID and proof of address (uploaded to S3).
+- Application lifecycle: `draft` → `pending_verification` → `approved` | `rejected` | `flagged_branch_visit` | `flagged_home_verification`.
 
-Status transitions are only allowed from `pending_verification`.
+## Target Deployment
 
-## Key Domain Concepts
-
-- Applications have 4 steps (personal info, address, employment, documents), each saved independently.
-- Documents are stored in S3 with presigned URLs for upload/download.
-- One active application per customer (enforced at the service layer).
-- Philippine-specific validations: PH mobile format (+63/0 prefix), TIN format, 4-digit zip codes, barangay/province address fields.
+AWS ap-southeast-1: ECS Fargate (backend), S3 + CloudFront (frontend), RDS PostgreSQL 15, S3 (document storage).
